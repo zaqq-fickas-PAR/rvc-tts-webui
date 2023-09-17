@@ -12,7 +12,7 @@ app = FastAPI()
 
 
 class RvcOptions(BaseModel):
-    model_name: str
+    rvc_model_name: str
     speed: int
     tts_text: str
     tts_voice: str
@@ -30,7 +30,7 @@ def yield_audio(audio_arr):
 def convert_text_to_rvc_speech(options: RvcOptions | None = None):
     try:
         info_text, edge_tts_output, tts_output = tts(
-            options.model_name,
+            options.rvc_model_name,
             options.speed,
             options.tts_text,
             options.tts_voice,
