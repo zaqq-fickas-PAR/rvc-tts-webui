@@ -7,7 +7,7 @@ on:
 
 jobs:
   deploy:
-    runs-on: [self-hosted, sagiri]
+    runs-on: [self-hosted]
 
     steps:
       - name: Checkout code
@@ -15,4 +15,5 @@ jobs:
 
       - name: Copy repo to destination
         run: |
-          cp -R . C:\Users\Sagiri\workspace\rvc-tts-webui-fastapi-conversion
+          ls
+          cp -Recurse -Force ./* ${{ vars.DEPLOY_DIRECTORY }}
