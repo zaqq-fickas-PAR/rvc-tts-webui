@@ -78,4 +78,4 @@ def convert_text_to_rvc_speech(options: RvcOptions | None = None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    uvicorn.run(app, port=8001)
+    uvicorn.run(app, port=8001, reload=True)
