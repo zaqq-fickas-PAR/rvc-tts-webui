@@ -8,10 +8,6 @@ on:
 jobs:
   deploy:
     runs-on: [self-hosted]
-    inputs:
-      deploy_directory:
-        description: 'Directory to copy the contents of the repo to'
-        required: true
 
     steps:
       - name: Checkout code
