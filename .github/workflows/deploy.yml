@@ -16,4 +16,4 @@ jobs:
       - name: Copy repo to destination
         run: |
           ls
-          cp -R ./* ${{ vars.DEPLOY_DIRECTORY }}
+          cp -Recurse -Force ./* ${{ vars.DEPLOY_DIRECTORY }}
