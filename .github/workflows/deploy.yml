@@ -15,4 +15,5 @@ jobs:
 
       - name: Copy repo to destination
         run: |
-          cp -R ./rvc-tts-webui/* ${{ vars.DEPLOY_DIRECTORY }}
+          ls
+          cp -R ./* ${{ vars.DEPLOY_DIRECTORY }}
