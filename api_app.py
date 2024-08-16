@@ -4,7 +4,9 @@ from pydantic import BaseModel
 import uvicorn
 import argparse
 import struct
+import nest_asyncio
 
+nest_asyncio.apply()
 
 from tts import tts
 
@@ -23,7 +25,7 @@ class RvcOptions(BaseModel):
     protect0: float
 
 
-@app.post("/tts")
+@app.post("/v1/audio/speech")
 def convert_text_to_rvc_speech(options: RvcOptions | None = None):
     def generate_audio_stream(sample_rate, audio_data):
         # Convert audio data to bytes
@@ -78,4 +80,4 @@ def convert_text_to_rvc_speech(options: RvcOptions | None = None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     args = parser.parse_args()
-    uvicorn.run(app, port=8001, reload=True)
+    uvicorn.run(app, host="0.0.0.0", port=8002)

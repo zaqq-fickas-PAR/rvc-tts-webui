@@ -69,6 +69,120 @@ venv\Scripts\activate
 pip install -r requirements.txt --upgrade
 ```
 
+## FOR USE WITH OPEN-WEBUI:
+
+First of all, the steps above will need to be followed. 
+
+Your setup steps for will need to align with your overall setup, but however you have Open-WebUI and RVC running, they will need to be able to connect to each other - in the case of a docker-compose setup (like mine), for instance, they should be on the same network. 
+
+In case it may be useful to someone, the section for RVC in my my docker-compose.yml looks something like this: 
+
+```
+  rvc-tts-webui:
+    build:
+      context: ./projects/rvc-tts-webui
+    container_name: rvc-tts-webui
+    ports:
+      - "9000:9000"
+      - "8002:8002"
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=compute,utility
+    volumes:
+      - ./projects/rvc-tts-webui/weights:/app/weights
+      - ./projects/rvc-tts-webui/output:/app/output
+    command: [ "/app/start_services.sh" ]
+    networks:
+      - ai_services
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [ gpu ]
+```
+
+After that is completed, (again, as of Open-WebUI v0.3.13) - you will need to edit the main.py file in Open-WebUI/backend/apps/audio. My 'speech' method has been replaced with the following: 
+
+```
+@app.post("/speech")
+async def speech(request: Request, user=Depends(get_verified_user)):
+    body = await request.body()
+    name = hashlib.sha256(body).hexdigest()
+
+    file_path = SPEECH_CACHE_DIR.joinpath(f"{name}.mp3")
+    file_body_path = SPEECH_CACHE_DIR.joinpath(f"{name}.json")
+
+    # Check if the file already exists in the cache
+    if file_path.is_file():
+        return FileResponse(file_path)
+
+    headers = {
+        "Authorization": f"Bearer {app.state.config.TTS_OPENAI_API_KEY}",
+        "Content-Type": "application/json"
+    }
+
+    try:
+        body = body.decode("utf-8")
+        body_json = json.loads(body)
+        body_json.update({
+            "rvc_model_name": app.state.config.TTS_MODEL,
+            "speed": 0,
+            "tts_text": body_json.get("input"),
+            "tts_voice": app.state.config.TTS_VOICE,
+            "f0_key_up": 0,
+            "f0_method": "rmvpe",
+            "index_rate": 1,
+            "protect0": 0.5
+        })
+        body = json.dumps(body_json).encode("utf-8")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Invalid request format")
+
+    r = None
+    try:
+        r = requests.post(
+            url=f"{app.state.config.TTS_OPENAI_API_BASE_URL}/audio/speech",
+            data=body,
+            headers=headers,
+            stream=True,
+        )
+
+        r.raise_for_status()
+
+        # Save the streaming content to a file
+        with open(file_path, "wb") as f:
+            for chunk in r.iter_content(chunk_size=8192):
+                f.write(chunk)
+
+        with open(file_body_path, "w") as f:
+            json.dump(body_json, f)
+
+        # Return the saved file
+        return FileResponse(file_path)
+
+    except Exception as e:
+        error_detail = "Open WebUI: Server Connection Error"
+        if r is not None:
+            try:
+                res = r.json()
+                if "error" in res:
+                    error_detail = f"External: {res['error']['message']}"
+            except Exception as json_err:
+                error_detail = f"External: {e}"
+
+        raise HTTPException(
+            status_code=r.status_code if r != None else 500,
+            detail=error_detail,
+        )
+```
+
+Then, (as of Open-WebUI v0.3.13), you will need to edit the "Audio" section in Open-WebUI's Admin Panel > Settings. Again, your setup as a whole will dictate what needs to go in here, but in my case (using Docker-Compose for everything), my API base url is "http://rvc-tts-webui:8002/v1". In the "TTS Voice" section, you will need to put the Edge-tts speaker you want to use for the model (you can find these by opening RVC on its own - in my case, that's at http://localhost:9000/). The model itself will be the name of the RVC model you want to use. Make sure it matches the folder name that you put the index and .pth files into in the weights folder, otherwise it won't find them properly.
+
+
+If the steps above have all been completed, TTS should work for your configured TTS voice for both manual TTS as well as voice calls with your AI model.
+
 ## Troubleshooting
 
 ```

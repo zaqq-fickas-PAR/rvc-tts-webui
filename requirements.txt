@@ -9,3 +9,7 @@ pyworld==0.3.4
 torchcrepe==0.0.20
 fastapi==0.103.1
 uvicorn==0.23.2
+omegaconf==2.0.5
+hydra-core==1.0.7
+nest-asyncio==1.5.4
+tensorboardx
